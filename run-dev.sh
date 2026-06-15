@@ -69,11 +69,43 @@ fi
 CP="$REPO/*"
 [ -f "$GAMEVAL_API" ] && CP="$GAMEVAL_API:$REPO/*"
 
-echo "Launching RuneLite (developer mode) with sideloaded Bank Organiser..."
+# --- Isolated dev RuneLite home -----------------------------------------------------
+# The plugin is published on the Plugin Hub, so a normal dev launch would load BOTH the
+# installed hub copy AND our sideloaded build — two instances fighting over the bank UI.
+# Point the dev client at its own home (via -Duser.home) with NO external plugins, so only
+# our sideloaded copy runs. Your real ~/.runelite and the hub plugin are left untouched.
+DEV_HOME="$HOME/.bankassistant-dev"
+DEV_RL="$DEV_HOME/.runelite"
+REAL_RL="$HOME/.runelite"
+
+mkdir -p "$DEV_RL/plugins" "$DEV_RL/sideloaded-plugins"
+ln -sfn "$HERE/build/libs/bank-organiser-1.0.0.jar" "$DEV_RL/sideloaded-plugins/bank-assistant.jar"
+
+# Share the big read-mostly caches so the game cache isn't re-downloaded.
+for shared in jagexcache cache; do
+	[ -e "$REAL_RL/$shared" ] && ln -sfn "$REAL_RL/$shared" "$DEV_RL/$shared"
+done
+[ -e "$HOME/jagexcache" ] && ln -sfn "$HOME/jagexcache" "$DEV_HOME/jagexcache"
+
+# Seed the dev config from your real one ONCE (so loadouts/overrides/order carry over),
+# but strip all external plugins so the hub copy isn't pulled in. Delete
+# ~/.bankassistant-dev to re-sync from your real config.
+if [ ! -d "$DEV_RL/profiles2" ] && [ -d "$REAL_RL/profiles2" ]; then
+	cp -R "$REAL_RL/profiles2" "$DEV_RL/profiles2"
+	for prof in "$DEV_RL/profiles2/"*.properties; do
+		[ -f "$prof" ] || continue
+		sed -i '' -E 's/^runelite\.externalPlugins=.*/runelite.externalPlugins=/' "$prof"
+		sed -i '' -E '/^runelite\.bankorganiserplugin=/d' "$prof"
+		printf 'runelite.bankorganiserplugin=true\n' >> "$prof"
+	done
+fi
+
+echo "Launching RuneLite (developer mode) with sideloaded Bank Assistant (isolated home)..."
 # -ea is REQUIRED for the injected client; without it RuneLite aborts with
 # "Developers should enable assertions -ea".
 exec "$JAVA_HOME/bin/java" \
 	-ea \
+	-Duser.home="$DEV_HOME" \
 	-XX:+UseG1GC -Xmx768m \
 	-cp "$CP" \
 	net.runelite.client.RuneLite --developer-mode "$@"

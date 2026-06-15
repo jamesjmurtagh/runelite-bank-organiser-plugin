@@ -94,6 +94,7 @@ public class BankLayoutManagerTest
 
 		// Organised by default unless a test says otherwise.
 		lenient().when(button.isOrganised()).thenReturn(true);
+		lenient().when(button.isShowLoadouts()).thenReturn(true);
 		lenient().when(loadoutManager.getLoadouts()).thenReturn(Collections.emptyList());
 		// Section draw order (custom sections would precede these; none in these tests).
 		lenient().when(categoriser.sectionOrder()).thenReturn(List.of("Weapons", "Food", "Currency"));

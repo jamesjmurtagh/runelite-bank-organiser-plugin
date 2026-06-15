@@ -21,11 +21,20 @@ package com.bankorganiser;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
+import net.runelite.client.config.ConfigSection;
 
 @ConfigGroup(BankOrganiserConfig.GROUP)
 public interface BankOrganiserConfig extends Config
 {
 	String GROUP = "bankorganiser";
+
+	@ConfigSection(
+		name = "Import / Export",
+		description = "Share your configuration as a single string.",
+		position = 10,
+		closedByDefault = true
+	)
+	String importExportSection = "importExport";
 
 	@ConfigItem(
 		keyName = "playSound",
@@ -79,5 +88,66 @@ public interface BankOrganiserConfig extends Config
 	default String loadouts()
 	{
 		return "";
+	}
+
+	@ConfigItem(
+		keyName = "categoryOrder",
+		name = "Category order",
+		description = "Reorder the category sections. List section names one per line, top to"
+			+ " bottom; any you don't list keep their default order below. Names are"
+			+ " case-insensitive and match the built-in categories or your custom override"
+			+ " sections.\n"
+			+ "Built-in: Melee Equipment, Ranged Equipment, Mage Equipment, Runecrafting,"
+			+ " Mining & Smithing, Woodcutting, Fishing, Farming, Herb Seeds, Tree Seeds, Herbs,"
+			+ " Potions, Food, Teleports, Jewellery, Gems, Currency, Equipment, Resources, Other.\n"
+			+ "Example:\n"
+			+ "Food\n"
+			+ "Potions\n"
+			+ "Runecrafting",
+		position = 4
+	)
+	default String categoryOrder()
+	{
+		return "";
+	}
+
+	@ConfigItem(
+		keyName = "exportToClipboard",
+		name = "Export to clipboard",
+		description = "Flip this to copy your current Bank Assistant configuration (overrides,"
+			+ " loadouts, category order, sound) to the clipboard as a shareable string. It flips"
+			+ " back automatically.",
+		section = importExportSection,
+		position = 1
+	)
+	default boolean exportToClipboard()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "importConfig",
+		name = "Import string",
+		description = "Paste an exported Bank Assistant configuration string here, then flip"
+			+ " 'Load imported config' below to apply it.",
+		section = importExportSection,
+		position = 2
+	)
+	default String importConfig()
+	{
+		return "";
+	}
+
+	@ConfigItem(
+		keyName = "loadImportedConfig",
+		name = "Load imported config",
+		description = "Flip this to apply the configuration string in 'Import string' above."
+			+ " It overwrites your overrides, loadouts, category order and sound, then flips back.",
+		section = importExportSection,
+		position = 3
+	)
+	default boolean loadImportedConfig()
+	{
+		return false;
 	}
 }

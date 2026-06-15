@@ -66,6 +66,22 @@ chisel=Tools
 - Lines that are blank or start with `#` are ignored. Edits apply as soon as the box
   loses focus, while the bank is open.
 
+### Category order
+
+The **Category order** setting controls the top-to-bottom order of the sections. List
+section names one per line, in the order you want them shown; anything you don't list
+keeps its default order below. Names are case-insensitive and match either a built-in
+category or one of your custom override sections.
+
+```
+Food
+Potions
+Runecrafting
+```
+
+That pins Food, Potions, then Runecrafting to the top; every other category follows in
+the default order. Unrecognised names are ignored.
+
 ### Loadouts (Quest-Helper-style placeholders)
 
 The **Loadouts** setting lets you define named checklist sections shown at the **top** of
@@ -89,6 +105,16 @@ Dramen staff
 ```
 
 Item names are matched against the game's item list (case-insensitive, exact name).
+
+### Import / export
+
+The **Import / Export** settings section lets you move your whole setup (overrides,
+loadouts, category order, sound) as a single string:
+
+- **Export to clipboard** — flip this toggle and your current configuration is copied to
+  the clipboard as a base64 string (the toggle flips back off). Paste it anywhere to share.
+- **Import string** + **Load imported config** — paste a string into the box, then flip
+  the load toggle to apply it. Invalid strings are rejected and change nothing.
 
 ## Building
 

@@ -19,6 +19,7 @@
 package com.bankorganiser.category;
 
 import com.bankorganiser.BankOrganiserConfig;
+import java.util.List;
 import net.runelite.api.EquipmentInventorySlot;
 import net.runelite.api.ItemComposition;
 import net.runelite.client.game.ItemEquipmentStats;
@@ -49,6 +50,7 @@ public class BankCategoriserTest
 	{
 		MockitoAnnotations.openMocks(this);
 		lenient().when(config.categoryOverrides()).thenReturn("");
+		lenient().when(config.categoryOrder()).thenReturn("");
 		categoriser = new BankCategoriser(itemManager, config);
 	}
 
@@ -324,6 +326,48 @@ public class BankCategoriserTest
 		// Unclosed group is invalid; the line is dropped and the item categorises normally.
 		when(config.categoryOverrides()).thenReturn("/[/=Runes");
 		assertEquals(Category.MAGE_EQUIPMENT.getDisplayName(), categoriser.sectionFor(fireRune));
+	}
+
+	// --- Category order ------------------------------------------------------------
+
+	@Test
+	public void categoryOrderMovesListedSectionsToTheTop()
+	{
+		when(config.categoryOrder()).thenReturn("Food\nPotions\nRunecrafting");
+		List<String> order = categoriser.sectionOrder();
+		assertEquals("Food", order.get(0));
+		assertEquals("Potions", order.get(1));
+		assertEquals("Runecrafting", order.get(2));
+		// Unlisted sections keep their default order, after the listed ones.
+		assertTrue(order.indexOf("Food")
+			< order.indexOf(Category.MELEE_EQUIPMENT.getDisplayName()));
+	}
+
+	@Test
+	public void categoryOrderIsCaseInsensitiveAndIgnoresUnknownNames()
+	{
+		when(config.categoryOrder()).thenReturn("food\nNot a category\nPOTIONS");
+		List<String> order = categoriser.sectionOrder();
+		assertEquals("Food", order.get(0));
+		assertEquals("Potions", order.get(1));
+		// Every built-in category is still present exactly once.
+		assertEquals(Category.values().length, order.size());
+	}
+
+	@Test
+	public void categoryOrderCanPositionCustomSections()
+	{
+		when(config.categoryOverrides()).thenReturn("pickaxe=Mining");
+		when(config.categoryOrder()).thenReturn("Food\nMining");
+		List<String> order = categoriser.sectionOrder();
+		assertEquals("Food", order.get(0));
+		assertEquals("Mining", order.get(1));
+	}
+
+	@Test
+	public void defaultOrderIsUnchangedWhenNoOrderConfigured()
+	{
+		assertEquals(Category.values()[0].getDisplayName(), categoriser.sectionOrder().get(0));
 	}
 
 	@Test

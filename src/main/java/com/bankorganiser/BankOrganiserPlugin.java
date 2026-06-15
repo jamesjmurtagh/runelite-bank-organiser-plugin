@@ -42,16 +42,21 @@ public class BankOrganiserPlugin extends Plugin
 	@Inject
 	private BankLayoutManager layoutManager;
 
+	@Inject
+	private ConfigPortability configPortability;
+
 	@Override
 	protected void startUp()
 	{
 		layoutManager.startUp(eventBus);
+		eventBus.register(configPortability);
 	}
 
 	@Override
 	protected void shutDown()
 	{
 		layoutManager.shutDown(eventBus);
+		eventBus.unregister(configPortability);
 	}
 
 	@Provides

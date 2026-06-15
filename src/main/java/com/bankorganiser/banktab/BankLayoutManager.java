@@ -31,6 +31,7 @@ import com.bankorganiser.loadout.LoadoutManager;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -305,7 +306,8 @@ public class BankLayoutManager
 		// way item opacity/greying and native withdraw work). The pool is limited, so we draw
 		// the REAL sections first — they must never lose a widget — and give loadouts (which
 		// are visually placed at the top) the remaining widgets.
-		List<Loadout> loadouts = loadoutManager.getLoadouts();
+		List<Loadout> loadouts = button.isShowLoadouts()
+			? loadoutManager.getLoadouts() : Collections.emptyList();
 		int loadoutHeight = computeLoadoutHeight(loadouts);
 
 		currentWidgetToUse = 0;

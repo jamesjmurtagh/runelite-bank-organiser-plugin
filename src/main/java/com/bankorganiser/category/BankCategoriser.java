@@ -21,9 +21,12 @@ package com.bankorganiser.category;
 import com.bankorganiser.BankOrganiserConfig;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -157,9 +160,11 @@ public class BankCategoriser
 	private final ItemManager itemManager;
 	private final BankOrganiserConfig config;
 
-	private String cachedRaw;
+	private String cachedOverridesRaw;
+	private String cachedOrderRaw;
 	private List<Override> overrides = new ArrayList<>();
 	private List<String> customSectionOrder = new ArrayList<>();
+	private List<String> userCategoryOrder = new ArrayList<>();
 
 	@Inject
 	public BankCategoriser(ItemManager itemManager, BankOrganiserConfig config)
@@ -193,20 +198,23 @@ public class BankCategoriser
 	}
 
 	/**
-	 * The order sections are drawn in: custom (override-defined) sections first, in the
-	 * order they first appear in the config, then the built-in categories in their fixed
-	 * order. Sections with no items are skipped by the caller.
+	 * The order sections are drawn in: the user's configured order first, then any sections
+	 * they didn't list in the default order (custom override sections, then the built-in
+	 * categories in their fixed order). Sections with no items are skipped by the caller.
 	 */
 	public List<String> sectionOrder()
 	{
 		ensureParsed();
 
-		List<String> order = new ArrayList<>(customSectionOrder);
+		// LinkedHashSet keeps first-seen order and de-duplicates, so a section named in the
+		// user's order won't be added again by the default-order pass below.
+		LinkedHashSet<String> order = new LinkedHashSet<>(userCategoryOrder);
+		order.addAll(customSectionOrder);
 		for (Category c : Category.values())
 		{
 			order.add(c.getDisplayName());
 		}
-		return order;
+		return new ArrayList<>(order);
 	}
 
 	public Category categorise(int rawItemId)
@@ -491,11 +499,13 @@ public class BankCategoriser
 	private void ensureParsed()
 	{
 		final String raw = config.categoryOverrides();
-		if (raw != null && raw.equals(cachedRaw))
+		final String rawOrder = config.categoryOrder();
+		if (Objects.equals(raw, cachedOverridesRaw) && Objects.equals(rawOrder, cachedOrderRaw))
 		{
 			return;
 		}
-		cachedRaw = raw;
+		cachedOverridesRaw = raw;
+		cachedOrderRaw = rawOrder;
 
 		List<Override> parsed = new ArrayList<>();
 		Set<String> customs = new LinkedHashSet<>();
@@ -537,6 +547,48 @@ public class BankCategoriser
 
 		overrides = parsed;
 		customSectionOrder = new ArrayList<>(customs);
+		userCategoryOrder = parseOrder(rawOrder);
+	}
+
+	/**
+	 * Parses the user's preferred category order into canonical section names. Each line is
+	 * matched (case-insensitively) against the built-in categories and the custom override
+	 * sections; unrecognised or duplicate lines are dropped.
+	 */
+	private List<String> parseOrder(String raw)
+	{
+		List<String> result = new ArrayList<>();
+		if (raw == null)
+		{
+			return result;
+		}
+
+		// lower-cased name -> canonical section name (built-ins + custom override sections)
+		Map<String, String> known = new LinkedHashMap<>();
+		for (Category c : Category.values())
+		{
+			known.put(c.getDisplayName().toLowerCase(Locale.ROOT), c.getDisplayName());
+		}
+		for (String custom : customSectionOrder)
+		{
+			known.put(custom.toLowerCase(Locale.ROOT), custom);
+		}
+
+		Set<String> seen = new LinkedHashSet<>();
+		for (String line : raw.split("\\R"))
+		{
+			String trimmed = line.trim();
+			if (trimmed.isEmpty() || trimmed.startsWith("#"))
+			{
+				continue;
+			}
+			String canonical = known.get(trimmed.toLowerCase(Locale.ROOT));
+			if (canonical != null && seen.add(canonical))
+			{
+				result.add(canonical);
+			}
+		}
+		return result;
 	}
 
 	/**
